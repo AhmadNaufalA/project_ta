@@ -1,9 +1,15 @@
+import 'dart:math';
+
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:projectta/model/chart_data.dart';
 import 'package:projectta/model/tambak.dart';
 import 'package:projectta/model/weekly_settings.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
+
+import '../utils/get_token.dart';
 
 class WeeklyPage extends StatefulWidget {
   final WeeklySettings settings;
@@ -21,8 +27,19 @@ class _WeeklyPageState extends State<WeeklyPage> {
   List<ChartData> _data = [];
 
   _fetch() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = await getToken();
+
+    if (token == null) {
+      await FirebaseMessaging.instance.deleteToken();
+
+      prefs.remove('user');
+
+      Navigator.of(context).pushReplacementNamed('/login');
+      return;
+    }
     final weeklyData = await widget.tambak
-        .getBetween(widget.settings.toDate, widget.settings.columnName);
+        .getBetween(widget.settings.toDate, widget.settings.columnName, token);
 
     setState(() {
       _isLoading = false;
@@ -59,7 +76,7 @@ class _WeeklyPageState extends State<WeeklyPage> {
                     dateFormat: DateFormat("MMM dd"),
                     // maximumLabels: 1,
                     visibleMinimum: _data[0].time,
-                    visibleMaximum: _data[6].time,
+                    visibleMaximum: _data[min(_data.length - 1, 6)].time,
                     // labelPosition: ChartDataLabelPosition.inside,
                   ),
                   primaryYAxis: NumericAxis(

@@ -7,13 +7,21 @@ class KualitasAir {
   final DateTime waktu;
   final num pH;
   final num Suhu;
-  final num Salinitas;
-  final num Ketinggian;
+  final num TDS;
+  // final num Ketinggian;
   final num Oksigen;
   final num Kekeruhan;
 
-  KualitasAir(this.id, this.id_tambak, this.waktu, this.pH, this.Suhu,
-      this.Salinitas, this.Ketinggian, this.Oksigen, this.Kekeruhan);
+  KualitasAir(
+      this.id,
+      this.id_tambak,
+      this.waktu,
+      this.pH,
+      this.Suhu,
+      this.TDS,
+      // this.Ketinggian,
+      this.Oksigen,
+      this.Kekeruhan);
 
   //Fetch all kualitas air from API
   // static Future<List<KualitasAir>> getAll() async {
@@ -62,8 +70,8 @@ class KualitasAir {
       'waktu': waktu.toString(),
       'pH': pH,
       'suhu': Suhu,
-      'salinitas': Salinitas,
-      'ketinggian': Ketinggian,
+      'tds': TDS,
+      // 'ketinggian': Ketinggian,
       'oksigen': Oksigen,
       'kekeruhan': Kekeruhan,
     };
@@ -76,8 +84,8 @@ class KualitasAir {
       DateTime.parse(map['waktu']),
       map['pH'] as num,
       map['Suhu'] as num,
-      map['Salinitas'] as num,
-      map['Ketinggian'] as num,
+      map['TDS'] as num,
+      // map['Ketinggian'] as num,
       map['Oksigen'] as num,
       map['Kekeruhan'] as num,
     );

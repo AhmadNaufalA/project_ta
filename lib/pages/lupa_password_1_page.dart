@@ -46,19 +46,52 @@ class _LupaPassword1PageState extends State<LupaPassword1Page> {
               child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              TextFormField(
-                controller: usernameController,
-                enabled: !isLoading,
-                decoration: const InputDecoration(label: Text('Username')),
-                validator: ((value) => value == null
-                    ? "Username tidak boleh kosong"
-                    : (value.isEmpty ? "Username tidak boleh kosong" : null)),
+              Text("Silakan Masukkan Username",
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 24,
+                  )),
+              SizedBox(height: 30),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 0),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    border: Border.all(color: Colors.white),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    child: TextFormField(
+                      controller: usernameController,
+                      enabled: !isLoading,
+                      decoration:
+                          const InputDecoration(label: Text('Username')),
+                      validator: ((value) => value == null
+                          ? "Username tidak boleh kosong"
+                          : (value.isEmpty
+                              ? "Username tidak boleh kosong"
+                              : null)),
+                    ),
+                  ),
+                ),
               ),
-              MaterialButton(
-                onPressed: isLoading ? null : handleSubmit,
-                child: isLoading
-                    ? const CircularProgressIndicator()
-                    : const Text('Lanjut'),
+              SizedBox(height: 10),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.green.shade400,
+                ),
+                child: MaterialButton(
+                  onPressed: isLoading ? null : handleSubmit,
+                  child: isLoading
+                      ? const CircularProgressIndicator()
+                      : const Text(
+                          'Lanjut',
+                          style: TextStyle(
+                            color: Colors.white,
+                          ),
+                        ),
+                ),
               ),
             ],
           )),

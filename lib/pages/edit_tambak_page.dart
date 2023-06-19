@@ -1,7 +1,10 @@
 // ignore_for_file: use_build_context_synchronously
 
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:projectta/model/tambak.dart';
+import 'package:projectta/utils/get_token.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class EditTambakPage extends StatefulWidget {
   const EditTambakPage({Key? key, required this.tambak}) : super(key: key);
@@ -22,8 +25,8 @@ class _EditTambakPageState extends State<EditTambakPage> {
   late Map<String, bool> preference = {
     "pH": widget.tambak.pH,
     "Suhu": widget.tambak.Suhu,
-    "Salinitas": widget.tambak.Salinitas,
-    "Ketinggian": widget.tambak.Ketinggian,
+    "TDS": widget.tambak.TDS,
+    // "Ketinggian": widget.tambak.Ketinggian,
     "Oksigen": widget.tambak.Oksigen,
     "Kekeruhan": widget.tambak.Kekeruhan,
   };
@@ -57,8 +60,19 @@ class _EditTambakPageState extends State<EditTambakPage> {
       return;
     }
 
-    await widget.tambak
-        .updateTambak(nameController.text, descController.text, preference);
+    final prefs = await SharedPreferences.getInstance();
+    final token = await getToken();
+
+    if (token == null) {
+      await FirebaseMessaging.instance.deleteToken();
+
+      prefs.remove('user');
+
+      Navigator.of(context).pushReplacementNamed('/login');
+      return;
+    }
+    await widget.tambak.updateTambak(
+        nameController.text, descController.text, preference, token);
 
     setState(() {
       isLoading = false;

@@ -10,11 +10,22 @@ class User {
   final String nama;
   final String secretQuestion;
   final int secretAnswer;
+  final String? token;
 
   User(this.id, this.username, this.nama, this.secretQuestion,
-      this.secretAnswer);
+      this.secretAnswer, this.token);
 
-  static Future<String> register({
+  static Future<void> saveToken({
+    required String token,
+    required String deviceToken,
+  }) async {
+    var request = http.MultipartRequest(
+        'POST', Uri.parse('$baseUrl/user/save-device-token'));
+    request.fields.addAll({'token': token, 'device_token': deviceToken});
+    await request.send();
+  }
+
+  static Future<String?> register({
     required String username,
     required String nama,
     required String password,
@@ -36,11 +47,12 @@ class User {
     if (response.statusCode == 200) {
       return "User berhasil dibuat, silahkan login";
     } else {
-      return jsonDecode(await response.stream.bytesToString())['message'];
+      return jsonDecode(
+          await response.stream.bytesToString())['messageHandler'];
     }
   }
 
-  static Future<MapEntry<bool, String>> login({
+  static Future<MapEntry<bool, dynamic>> login({
     required String username,
     required String password,
   }) async {
@@ -55,10 +67,19 @@ class User {
     final responseJson = jsonDecode(await response.stream.bytesToString());
 
     if (response.statusCode == 200) {
-      return MapEntry(false, jsonEncode(responseJson['user']));
+      return MapEntry(false, responseJson['user']);
     } else {
-      return MapEntry(true, responseJson['message']);
+      return MapEntry(true, responseJson['messageHandler']);
     }
+  }
+
+  Future<void> editUser(String nama, String password, String token) async {
+    var request = http.MultipartRequest('POST', Uri.parse('$baseUrl/user/$id'));
+    request.headers.addAll({'token': token});
+    request.fields
+        .addAll({'nama': nama, 'username': username, 'password': password});
+
+    await request.send();
   }
 
   static Future<User?> getByUsername(String username) async {
@@ -112,12 +133,12 @@ class User {
 
   factory User.fromMap(Map<String, dynamic> map) {
     return User(
-      map['id'] as int,
-      map['username'] as String,
-      map['nama'] as String,
-      map['secret_question'] as String,
-      map['secret_answer'] as int,
-    );
+        map['id'] as int,
+        map['username'] as String,
+        map['nama'] as String,
+        map['secret_question'] as String,
+        map['secret_answer'] as int,
+        map['token'] as String?);
   }
 
   String toJson() => json.encode(toMap());

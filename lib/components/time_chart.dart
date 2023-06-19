@@ -39,9 +39,9 @@ class SimpleTimeSeriesChart extends StatelessWidget {
       // should create the same type of [DateTime] as the data provided. If none
       // specified, the default creates local date time.
       dateTimeFactory: const charts.LocalDateTimeFactory(),
-      domainAxis: new charts.DateTimeAxisSpec(
-        tickFormatterSpec: new charts.AutoDateTimeTickFormatterSpec(
-          day: new charts.TimeFormatterSpec(
+      domainAxis: const charts.DateTimeAxisSpec(
+        tickFormatterSpec: charts.AutoDateTimeTickFormatterSpec(
+          day: charts.TimeFormatterSpec(
             format: 'dd',
             transitionFormat: 'dd MMM',
           ),

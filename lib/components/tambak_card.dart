@@ -20,15 +20,31 @@ class TambakCard extends StatelessWidget {
         elevation: 10,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 15),
-          child: ListTile(
-            leading: Icon(Icons.adb),
-            title: Text(tambak.name),
-            trailing: Text(
-              (tambak.status ?? false) ? "Tidak optimal" : "Optimal",
-              textAlign: TextAlign.right,
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+            SizedBox(height: 10),
+            Image.asset(
+              'images/icond.jpg',
+              height: 100,
+              width: 100,
             ),
-          ),
+            SizedBox(height: 10),
+            Text(
+              tambak.name,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 36,
+              ),
+            ),
+            SizedBox(
+              height: 20,
+            ),
+            Text(
+              (tambak.status ?? false) ? "Tidak Optimal" : "Optimal",
+              textAlign: TextAlign.right,
+              style: TextStyle(fontSize: 26),
+            ),
+          ]),
         ),
       ),
       // Card(

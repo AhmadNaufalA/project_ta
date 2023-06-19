@@ -1,7 +1,10 @@
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:projectta/model/log.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../model/tambak.dart';
+import '../utils/get_token.dart';
 
 class LogPage extends StatefulWidget {
   const LogPage({Key? key, required this.tambak}) : super(key: key);
@@ -20,7 +23,18 @@ class _LogPageState extends State<LogPage> {
     setState(() {
       isLoading = true;
     });
-    final newLogs = await widget.tambak.getLogs();
+    final prefs = await SharedPreferences.getInstance();
+    final token = await getToken();
+
+    if (token == null) {
+      await FirebaseMessaging.instance.deleteToken();
+
+      prefs.remove('user');
+
+      Navigator.of(context).pushReplacementNamed('/login');
+      return;
+    }
+    final newLogs = await widget.tambak.getLogs(token);
     setState(() {
       logs = newLogs;
       isLoading = false;
@@ -54,23 +68,29 @@ class _LogPageState extends State<LogPage> {
                       itemCount: logs.length,
                       itemBuilder: (_, index) => Card(
                         child: Padding(
-                          padding: const EdgeInsets.all(8.0),
+                          padding: const EdgeInsets.all(16.0),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(logs[index].isi),
-                              const SizedBox(height: 4),
+                              Text(
+                                logs[index].isi,
+                                style: const TextStyle(
+                                    color: Colors.black,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w400),
+                              ),
+                              const SizedBox(height: 14),
                               Text(
                                 logs[index].waktu,
                                 style: const TextStyle(
-                                    color: Colors.grey, fontSize: 12),
+                                    color: Colors.black54, fontSize: 18),
                               ),
                             ],
                           ),
                         ),
                       ),
                       separatorBuilder: (_, __) => const SizedBox(
-                        height: 4,
+                        height: 14,
                       ),
                     ),
         ));

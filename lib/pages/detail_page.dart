@@ -1,10 +1,13 @@
 // ignore_for_file: use_build_context_synchronously
 
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:projectta/model/kualitas_air.dart';
 import 'package:projectta/model/tambak.dart';
 import 'package:projectta/model/weekly_settings.dart';
 import 'package:projectta/utils/date_to_string.dart';
+import 'package:projectta/utils/get_token.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:syncfusion_flutter_gauges/gauges.dart';
 
 class DetailPage extends StatefulWidget {
@@ -27,7 +30,18 @@ class _DetailPageState extends State<DetailPage> {
     const Color.fromARGB(255, 102, 255, 85),
   ];
   getTambakData() async {
-    final newKualitas = await widget.initialTambak.getLatest();
+    final prefs = await SharedPreferences.getInstance();
+    final token = await getToken();
+
+    if (token == null) {
+      await FirebaseMessaging.instance.deleteToken();
+
+      prefs.remove('user');
+
+      Navigator.of(context).pushReplacementNamed('/login');
+      return;
+    }
+    final newKualitas = await widget.initialTambak.getLatest(token);
 
     if (newKualitas == null) {
       setState(() {
@@ -51,16 +65,30 @@ class _DetailPageState extends State<DetailPage> {
 
   void handleTapDate() async {
     final pickedDate = await showDatePicker(
-        context: context,
-        initialDate: dateTime ?? DateTime.now(),
-        lastDate: DateTime.now(),
-        firstDate: DateTime.now().subtract(
-          const Duration(days: 30),
-        ));
+      context: context,
+      locale: const Locale('id'),
+      initialDate: dateTime ?? DateTime.now(),
+      firstDate: (dateTime ?? DateTime.now()).subtract(
+        const Duration(days: 120),
+      ),
+      lastDate: DateTime.now(),
+    );
 
     if (pickedDate == null) return;
 
-    final newKualitasAir = await widget.initialTambak.getSingle(pickedDate);
+    final prefs = await SharedPreferences.getInstance();
+    final token = await getToken();
+
+    if (token == null) {
+      await FirebaseMessaging.instance.deleteToken();
+
+      prefs.remove('user');
+
+      Navigator.of(context).pushReplacementNamed('/login');
+      return;
+    }
+    final newKualitasAir =
+        await widget.initialTambak.getSingle(pickedDate, token);
 
     setState(() {
       dateTime = pickedDate;
@@ -88,28 +116,39 @@ class _DetailPageState extends State<DetailPage> {
             content: Text(tambak.desc),
             actionsAlignment: MainAxisAlignment.spaceBetween,
             actions: [
-              TextButton(
-                onPressed: () async {
-                  final updateResult = await Navigator.of(context)
-                      .pushNamed('/edit_tambak', arguments: tambak);
-                  // await widget.tambak.deleteTambak();
-                  Navigator.of(context).pop(updateResult);
-                },
-                child: const Text(
-                  "Ubah Tambak",
-                  style: TextStyle(color: Colors.blue),
-                ),
-              ),
-              TextButton(
-                onPressed: () async {
-                  await widget.initialTambak.deleteTambak();
-                  Navigator.of(context).popUntil((route) => route.isFirst);
-                },
-                child: const Text(
-                  "Hapus Tambak",
-                  style: TextStyle(color: Colors.red),
-                ),
-              ),
+              // TextButton(
+              //   onPressed: () async {
+              //     final updateResult = await Navigator.of(context)
+              //         .pushNamed('/edit_tambak', arguments: tambak);
+              //     // await widget.tambak.deleteTambak();
+              //     Navigator.of(context).pop(updateResult);
+              //   },
+              //   child: const Text(
+              //     "Ubah Tambak",
+              //     style: TextStyle(color: Colors.blue),
+              //   ),
+              // ),
+              // TextButton(
+              //   onPressed: () async {
+              //     final prefs = await SharedPreferences.getInstance();
+              //     final token = await getToken();
+
+              //     if (token == null) {
+              //       await FirebaseMessaging.instance.deleteToken();
+
+              //       prefs.remove('user');
+
+              //       Navigator.of(context).pushReplacementNamed('/login');
+              //       return;
+              //     }
+              //     await widget.initialTambak.deleteTambak(token);
+              //     Navigator.of(context).popUntil((route) => route.isFirst);
+              //   },
+              //   child: const Text(
+              //     "Hapus Tambak",
+              //     style: TextStyle(color: Colors.red),
+              //   ),
+              // ),
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
                 child: const Text(
@@ -125,7 +164,19 @@ class _DetailPageState extends State<DetailPage> {
     setState(() {
       isLoading = true;
     });
-    final newTambak = await Tambak.get(tambak.id);
+
+    final prefs = await SharedPreferences.getInstance();
+    final token = await getToken();
+
+    if (token == null) {
+      await FirebaseMessaging.instance.deleteToken();
+
+      prefs.remove('user');
+
+      Navigator.of(context).pushReplacementNamed('/login');
+      return;
+    }
+    final newTambak = await Tambak.get(tambak.id, token);
     setState(() {
       tambak = newTambak;
       isLoading = false;
@@ -205,14 +256,14 @@ class _DetailPageState extends State<DetailPage> {
                                                 ranges: <GaugeRange>[
                                                   GaugeRange(
                                                       startValue: 2,
-                                                      endValue: 7,
+                                                      endValue: 6.5,
                                                       color: Colors.yellow),
                                                   GaugeRange(
-                                                      startValue: 7,
-                                                      endValue: 9,
+                                                      startValue: 6.5,
+                                                      endValue: 9.5,
                                                       color: Colors.lightGreen),
                                                   GaugeRange(
-                                                      startValue: 9,
+                                                      startValue: 9.5,
                                                       endValue: 14,
                                                       color: Colors.red)
                                                 ],
@@ -248,6 +299,7 @@ class _DetailPageState extends State<DetailPage> {
                                                                       fontWeight:
                                                                           FontWeight
                                                                               .bold))),
+                                                          SizedBox(height: 3),
                                                           const Text('pH',
                                                               textAlign:
                                                                   TextAlign
@@ -265,9 +317,9 @@ class _DetailPageState extends State<DetailPage> {
                                           ])),
                                     ),
                                   ),
-                                if (tambak.Salinitas)
+                                if (tambak.TDS)
                                   InkWell(
-                                    onTap: navigateToWeekly('Salinitas'),
+                                    onTap: navigateToWeekly('TDS'),
                                     child: Card(
                                       child: Padding(
                                           padding: const EdgeInsets.all(8.0),
@@ -275,25 +327,24 @@ class _DetailPageState extends State<DetailPage> {
                                               SfRadialGauge(axes: <RadialAxis>[
                                             RadialAxis(
                                                 minimum: 0,
-                                                maximum: 40,
+                                                maximum: 4000,
                                                 ranges: <GaugeRange>[
                                                   GaugeRange(
                                                       startValue: 0,
-                                                      endValue: 15,
+                                                      endValue: 1000,
                                                       color: Colors.yellow),
                                                   GaugeRange(
-                                                      startValue: 15,
-                                                      endValue: 25,
+                                                      startValue: 1000,
+                                                      endValue: 3000,
                                                       color: Colors.lightGreen),
                                                   GaugeRange(
-                                                      startValue: 25,
-                                                      endValue: 40,
+                                                      startValue: 3000,
+                                                      endValue: 4000,
                                                       color: Colors.red)
                                                 ],
                                                 pointers: <GaugePointer>[
                                                   NeedlePointer(
-                                                    value: currentKualitas!
-                                                        .Salinitas
+                                                    value: currentKualitas!.TDS
                                                         .toDouble(),
                                                   )
                                                 ],
@@ -317,15 +368,15 @@ class _DetailPageState extends State<DetailPage> {
                                                                       color: Colors
                                                                           .black)),
                                                               child: Text(
-                                                                  '${currentKualitas!.Salinitas}',
+                                                                  '${currentKualitas!.TDS} ppm',
                                                                   style: const TextStyle(
                                                                       fontSize:
                                                                           18,
                                                                       fontWeight:
                                                                           FontWeight
                                                                               .bold))),
-                                                          const Text(
-                                                              'Salinitas',
+                                                          SizedBox(height: 3),
+                                                          const Text('TDS',
                                                               textAlign:
                                                                   TextAlign
                                                                       .center,
@@ -360,10 +411,10 @@ class _DetailPageState extends State<DetailPage> {
                                                       color: Colors.yellow),
                                                   GaugeRange(
                                                       startValue: 4,
-                                                      endValue: 8,
+                                                      endValue: 8.5,
                                                       color: Colors.lightGreen),
                                                   GaugeRange(
-                                                      startValue: 8,
+                                                      startValue: 8.5,
                                                       endValue: 12,
                                                       color: Colors.red)
                                                 ],
@@ -394,13 +445,14 @@ class _DetailPageState extends State<DetailPage> {
                                                                       color: Colors
                                                                           .black)),
                                                               child: Text(
-                                                                  '${currentKualitas!.Oksigen}',
+                                                                  '${currentKualitas!.Oksigen} ppm',
                                                                   style: const TextStyle(
                                                                       fontSize:
                                                                           18,
                                                                       fontWeight:
                                                                           FontWeight
                                                                               .bold))),
+                                                          SizedBox(height: 3),
                                                           const Text('Oksigen',
                                                               textAlign:
                                                                   TextAlign
@@ -427,20 +479,20 @@ class _DetailPageState extends State<DetailPage> {
                                           child:
                                               SfRadialGauge(axes: <RadialAxis>[
                                             RadialAxis(
-                                                minimum: 19,
-                                                maximum: 37,
+                                                minimum: 23,
+                                                maximum: 38.5,
                                                 ranges: <GaugeRange>[
                                                   GaugeRange(
-                                                      startValue: 19,
-                                                      endValue: 26,
+                                                      startValue: 23,
+                                                      endValue: 28,
                                                       color: Colors.yellow),
                                                   GaugeRange(
-                                                      startValue: 26,
-                                                      endValue: 30,
+                                                      startValue: 28,
+                                                      endValue: 33,
                                                       color: Colors.lightGreen),
                                                   GaugeRange(
-                                                      startValue: 30,
-                                                      endValue: 37,
+                                                      startValue: 33,
+                                                      endValue: 38,
                                                       color: Colors.red)
                                                 ],
                                                 pointers: <GaugePointer>[
@@ -469,13 +521,15 @@ class _DetailPageState extends State<DetailPage> {
                                                                       color: Colors
                                                                           .black)),
                                                               child: Text(
-                                                                  '${currentKualitas!.Suhu}',
+                                                                  '${currentKualitas!.Suhu}'
+                                                                  " °C",
                                                                   style: const TextStyle(
                                                                       fontSize:
                                                                           18,
                                                                       fontWeight:
                                                                           FontWeight
                                                                               .bold))),
+                                                          SizedBox(height: 3),
                                                           const Text('Suhu',
                                                               textAlign:
                                                                   TextAlign
@@ -493,83 +547,84 @@ class _DetailPageState extends State<DetailPage> {
                                           ])),
                                     ),
                                   ),
-                                if (tambak.Ketinggian)
-                                  InkWell(
-                                    onTap: navigateToWeekly('Ketinggian'),
-                                    child: Card(
-                                      child: Padding(
-                                          padding: const EdgeInsets.all(8.0),
-                                          child:
-                                              SfRadialGauge(axes: <RadialAxis>[
-                                            RadialAxis(
-                                                minimum: 0,
-                                                maximum: 65,
-                                                ranges: <GaugeRange>[
-                                                  GaugeRange(
-                                                      startValue: 0,
-                                                      endValue: 25,
-                                                      color: Colors.yellow),
-                                                  GaugeRange(
-                                                      startValue: 25,
-                                                      endValue: 40,
-                                                      color: Colors.lightGreen),
-                                                  GaugeRange(
-                                                      startValue: 40,
-                                                      endValue: 65,
-                                                      color: Colors.red)
-                                                ],
-                                                pointers: <GaugePointer>[
-                                                  NeedlePointer(
-                                                    value: currentKualitas!
-                                                        .Ketinggian
-                                                        .toDouble(),
-                                                  )
-                                                ],
-                                                annotations: <GaugeAnnotation>[
-                                                  GaugeAnnotation(
-                                                      verticalAlignment:
-                                                          GaugeAlignment.near,
-                                                      widget: Column(
-                                                        mainAxisSize:
-                                                            MainAxisSize.min,
-                                                        mainAxisAlignment:
-                                                            MainAxisAlignment
-                                                                .start,
-                                                        children: [
-                                                          Container(
-                                                              padding:
-                                                                  const EdgeInsets
-                                                                      .all(4.0),
-                                                              decoration: BoxDecoration(
-                                                                  border: Border.all(
-                                                                      color: Colors
-                                                                          .black)),
-                                                              child: Text(
-                                                                  '${currentKualitas!.Ketinggian}',
-                                                                  style: const TextStyle(
-                                                                      fontSize:
-                                                                          18,
-                                                                      fontWeight:
-                                                                          FontWeight
-                                                                              .bold))),
-                                                          const Text(
-                                                              'Ketinggian',
-                                                              textAlign:
-                                                                  TextAlign
-                                                                      .center,
-                                                              style: TextStyle(
-                                                                  fontSize: 18,
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .bold)),
-                                                        ],
-                                                      ),
-                                                      angle: 90,
-                                                      positionFactor: 0.7)
-                                                ])
-                                          ])),
-                                    ),
-                                  ),
+                                // if (tambak.Ketinggian)
+                                //   InkWell(
+                                //     onTap: navigateToWeekly('Ketinggian'),
+                                //     child: Card(
+                                //       child: Padding(
+                                //           padding: const EdgeInsets.all(8.0),
+                                //           child:
+                                //               SfRadialGauge(axes: <RadialAxis>[
+                                //             RadialAxis(
+                                //                 minimum: 0,
+                                //                 maximum: 65,
+                                //                 ranges: <GaugeRange>[
+                                //                   GaugeRange(
+                                //                       startValue: 0,
+                                //                       endValue: 25,
+                                //                       color: Colors.yellow),
+                                //                   GaugeRange(
+                                //                       startValue: 25,
+                                //                       endValue: 40,
+                                //                       color: Colors.lightGreen),
+                                //                   GaugeRange(
+                                //                       startValue: 40,
+                                //                       endValue: 65,
+                                //                       color: Colors.red)
+                                //                 ],
+                                //                 pointers: <GaugePointer>[
+                                //                   NeedlePointer(
+                                //                     value: currentKualitas!
+                                //                         .Ketinggian
+                                //                         .toDouble(),
+                                //                   )
+                                //                 ],
+                                //                 annotations: <GaugeAnnotation>[
+                                //                   GaugeAnnotation(
+                                //                       verticalAlignment:
+                                //                           GaugeAlignment.near,
+                                //                       widget: Column(
+                                //                         mainAxisSize:
+                                //                             MainAxisSize.min,
+                                //                         mainAxisAlignment:
+                                //                             MainAxisAlignment
+                                //                                 .start,
+                                //                         children: [
+                                //                           Container(
+                                //                               padding:
+                                //                                   const EdgeInsets
+                                //                                       .all(4.0),
+                                //                               decoration: BoxDecoration(
+                                //                                   border: Border.all(
+                                //                                       color: Colors
+                                //                                           .black)),
+                                //                               child: Text(
+                                //                                   '${currentKualitas!.Ketinggian}'
+                                //                                   " CM",
+                                //                                   style: const TextStyle(
+                                //                                       fontSize:
+                                //                                           18,
+                                //                                       fontWeight:
+                                //                                           FontWeight
+                                //                                               .bold))),
+                                //                           const Text(
+                                //                               'Ketinggian',
+                                //                               textAlign:
+                                //                                   TextAlign
+                                //                                       .center,
+                                //                               style: TextStyle(
+                                //                                   fontSize: 18,
+                                //                                   fontWeight:
+                                //                                       FontWeight
+                                //                                           .bold)),
+                                //                         ],
+                                //                       ),
+                                //                       angle: 90,
+                                //                       positionFactor: 0.7)
+                                //                 ])
+                                //           ])),
+                                //     ),
+                                //   ),
                                 if (tambak.Kekeruhan)
                                   InkWell(
                                     onTap: navigateToWeekly('Kekeruhan'),
@@ -580,19 +635,19 @@ class _DetailPageState extends State<DetailPage> {
                                               SfRadialGauge(axes: <RadialAxis>[
                                             RadialAxis(
                                                 minimum: 0,
-                                                maximum: 65,
+                                                maximum: 60,
                                                 ranges: <GaugeRange>[
                                                   GaugeRange(
                                                       startValue: 0,
-                                                      endValue: 25,
+                                                      endValue: 0,
                                                       color: Colors.yellow),
                                                   GaugeRange(
-                                                      startValue: 25,
-                                                      endValue: 40,
+                                                      startValue: 0,
+                                                      endValue: 30,
                                                       color: Colors.lightGreen),
                                                   GaugeRange(
-                                                      startValue: 40,
-                                                      endValue: 65,
+                                                      startValue: 30,
+                                                      endValue: 60,
                                                       color: Colors.red)
                                                 ],
                                                 pointers: <GaugePointer>[
@@ -622,13 +677,14 @@ class _DetailPageState extends State<DetailPage> {
                                                                       color: Colors
                                                                           .black)),
                                                               child: Text(
-                                                                  '${currentKualitas!.Kekeruhan}',
+                                                                  '${currentKualitas!.Kekeruhan} NTU',
                                                                   style: const TextStyle(
                                                                       fontSize:
                                                                           18,
                                                                       fontWeight:
                                                                           FontWeight
                                                                               .bold))),
+                                                          SizedBox(height: 3),
                                                           const Text(
                                                               'Kekeruhan',
                                                               textAlign:

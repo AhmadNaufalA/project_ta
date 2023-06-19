@@ -6,12 +6,15 @@ import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:intl/intl.dart';
 import 'package:projectta/firebase_options.dart';
 import 'package:projectta/model/tambak.dart';
 import 'package:projectta/model/weekly_settings.dart';
 import 'package:projectta/pages/create_tambak_page.dart';
 import 'package:projectta/pages/detail_page.dart';
 import 'package:projectta/pages/edit_tambak_page.dart';
+import 'package:projectta/pages/edit_user_page.dart';
 import 'package:projectta/pages/loading_page.dart';
 import 'package:projectta/pages/log_page.dart';
 import 'package:projectta/pages/login_page.dart';
@@ -20,10 +23,12 @@ import 'package:projectta/pages/lupa_password_2_page.dart';
 import 'package:projectta/pages/lupa_password_3_page.dart';
 import 'package:projectta/pages/register_page.dart';
 import 'package:projectta/pages/weekly_page.dart';
-import 'package:showcaseview/showcaseview.dart';
+
+// import 'package:showcaseview/showcaseview.dart';
 
 import './pages/home_page.dart';
 import './pages/splash_page.dart';
+import 'model/user.dart';
 
 Future<void> notificationHandler(RemoteMessage message) async {
   await AwesomeNotifications().createNotification(
@@ -53,7 +58,7 @@ void main() async {
   FirebaseMessaging.onMessage.listen(notificationHandler);
   FirebaseMessaging.onBackgroundMessage(notificationHandler);
 
-  // Intl.defaultLocale = "id";
+  Intl.defaultLocale = "id";
   runApp(const MyApp());
 }
 
@@ -63,9 +68,9 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      builder: (context, widget) => ShowCaseWidget(
-        builder: Builder(builder: (context) => widget!),
-      ),
+      localizationsDelegates: const [GlobalMaterialLocalizations.delegate],
+      supportedLocales: const [Locale('id')],
+
       // initialRoute: '/loading',
       // routes: {
       //   '/homepage': (context) => const HomePage(),
@@ -119,6 +124,11 @@ class MyApp extends StatelessWidget {
             return MaterialPageRoute(
                 builder: (context) => EditTambakPage(
                       tambak: settings.arguments as Tambak,
+                    ));
+          case '/edit_user':
+            return MaterialPageRoute(
+                builder: (context) => EditUserPage(
+                      user: settings.arguments as User,
                     ));
           case '/log':
             return MaterialPageRoute(

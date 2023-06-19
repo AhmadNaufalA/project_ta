@@ -1,5 +1,7 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:projectta/model/tambak.dart';
+import 'package:projectta/model/user.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LoadingPage extends StatefulWidget {
@@ -20,7 +22,22 @@ class _LoadingPageState extends State<LoadingPage> {
     final prefs = await SharedPreferences.getInstance();
 
     if (prefs.containsKey('user')) {
-      await FirebaseMessaging.instance.subscribeToTopic('a-topic');
+      final user = User.fromJson(prefs.getString('user')!);
+
+      if (user.token == null) {
+        prefs.remove('user');
+
+        Navigator.of(context).pushReplacementNamed('/login');
+        return;
+      }
+
+      final ids = await Tambak.getAllId(user.id.toString(), user.token!);
+
+      await Future.wait(ids.map((e) {
+        return FirebaseMessaging.instance.subscribeToTopic(e.toString());
+      }));
+      // await FirebaseMessaging.instance.subscribeToTopic('a-topic');
+
       Navigator.of(context).pushReplacementNamed('/homepage');
       return;
     }
@@ -30,8 +47,21 @@ class _LoadingPageState extends State<LoadingPage> {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: CircularProgressIndicator()),
+    return Scaffold(
+      body: SafeArea(
+        child: Center(
+            child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: const [
+            CircularProgressIndicator(),
+            SizedBox(
+              height: 60,
+            ),
+            Text('Loading, mohon tunggu sebentar')
+          ],
+        )),
+      ),
     );
   }
 }

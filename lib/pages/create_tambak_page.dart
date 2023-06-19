@@ -1,9 +1,12 @@
 // ignore_for_file: use_build_context_synchronously
 
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:projectta/model/tambak.dart';
 import 'package:projectta/model/user.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../utils/get_token.dart';
 
 class CreateTambakPage extends StatefulWidget {
   const CreateTambakPage({Key? key}) : super(key: key);
@@ -20,8 +23,8 @@ class _CreateTambakPageState extends State<CreateTambakPage> {
   Map<String, bool> preference = {
     "pH": false,
     "Suhu": false,
-    "Salinitas": false,
-    "Ketinggian": false,
+    "TDS": false,
+    // "Ketinggian": false,
     "Oksigen": false,
     "Kekeruhan": false,
   };
@@ -64,8 +67,21 @@ class _CreateTambakPageState extends State<CreateTambakPage> {
       return;
     }
 
-    await Tambak.createTambak(namaController.text, descController.text,
-        User.fromJson(userString).id, preference);
+    final token = await getToken();
+
+    if (token == null) {
+      await FirebaseMessaging.instance.deleteToken();
+
+      prefs.remove('user');
+
+      Navigator.of(context).pushReplacementNamed('/login');
+      return;
+    }
+
+    final idTambak = await Tambak.createTambak(namaController.text,
+        descController.text, User.fromJson(userString).id, preference, token);
+
+    await FirebaseMessaging.instance.subscribeToTopic(idTambak.toString());
 
     setState(() {
       isLoading = false;

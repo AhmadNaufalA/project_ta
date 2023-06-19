@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:projectta/components/tambak_card.dart';
 import 'package:projectta/model/tambak.dart';
 import 'package:projectta/model/user.dart';
+import 'package:projectta/utils/get_token.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:showcaseview/showcaseview.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
@@ -14,8 +14,6 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final _key1 = GlobalKey();
-
   bool isLoading = true;
   List<Tambak> tambaks = [];
 
@@ -27,7 +25,19 @@ class _HomePageState extends State<HomePage> {
     }
 
     final user = User.fromJson(prefs.getString('user')!);
-    final newTambaks = await Tambak.getAll(user.id.toString());
+
+    final token = await getToken();
+
+    if (token == null) {
+      await FirebaseMessaging.instance.deleteToken();
+
+      prefs.remove('user');
+
+      Navigator.of(context).pushReplacementNamed('/login');
+      return;
+    }
+
+    final newTambaks = await Tambak.getAll(user.id.toString(), token);
     setState(() {
       tambaks = newTambaks;
       isLoading = false;
@@ -40,7 +50,7 @@ class _HomePageState extends State<HomePage> {
         builder: (context) {
           return AlertDialog(
             title: const Text("Log out"),
-            content: Text("Yakin ingin keluar?"),
+            content: const Text("Yakin ingin keluar?"),
             actions: [
               TextButton(
                 onPressed: () {
@@ -48,7 +58,7 @@ class _HomePageState extends State<HomePage> {
                 },
                 child: const Text(
                   "Ya",
-                  style: TextStyle(color: Colors.red),
+                  style: TextStyle(color: Colors.green),
                 ),
               ),
               TextButton(
@@ -57,7 +67,7 @@ class _HomePageState extends State<HomePage> {
                 },
                 child: const Text(
                   "Batal",
-                  style: TextStyle(color: Colors.grey),
+                  style: TextStyle(color: Colors.red),
                 ),
               ),
             ],
@@ -67,8 +77,11 @@ class _HomePageState extends State<HomePage> {
     if (result == null) return;
 
     final prefs = await SharedPreferences.getInstance();
+
+    await FirebaseMessaging.instance.deleteToken();
+
     prefs.remove('user');
-    await FirebaseMessaging.instance.unsubscribeFromTopic('a-topic');
+
     Navigator.of(context).pushReplacementNamed('/login');
   }
 
@@ -79,93 +92,74 @@ class _HomePageState extends State<HomePage> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    WidgetsBinding.instance
-        .addPostFrameCallback((_) => ShowCaseWidget.of(context).startShowCase([
-              _key1,
-            ]));
-    return Scaffold(
-      backgroundColor: Colors.grey.shade300,
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          await Navigator.of(context).pushNamed('/create_tambak');
-          getTambaks();
-        },
-        child: const Icon(Icons.add),
-      ),
-      appBar: AppBar(
-        title: const Text('Kualitas Air Tambak Udang'),
-        centerTitle: true,
-        backgroundColor: Colors.greenAccent[700],
-        elevation: 0.0,
-        actions: [
-          IconButton(
-            onPressed: handleLogout,
-            icon: Icon(Icons.exit_to_app),
-            color: Colors.red,
-          )
-        ],
-      ),
-      body: Container(
-          margin: const EdgeInsets.all(20),
-          child: isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : tambaks.isEmpty
-                  ? const Center(
-                      child: Text('Belum ada tambak, silahkan tambah tambak'))
-                  : RefreshIndicator(
-                      onRefresh: getTambaks,
-                      child: ListView.separated(
-                        itemCount: tambaks.length,
-                        separatorBuilder: (_, __) => SizedBox(height: 15),
-                        itemBuilder: (_, index) {
-                          final tambak = tambaks[index];
+  Widget build(BuildContext context) => Scaffold(
+        backgroundColor: Colors.grey.shade300,
+        // floatingActionButton: FloatingActionButton(
+        //   backgroundColor: Colors.green,
+        //   onPressed: () async {
+        //     await Navigator.of(context).pushNamed('/create_tambak');
+        //     getTambaks();
+        //   },
+        //   child: const Icon(Icons.add),
+        // ),
+        appBar: AppBar(
+          title: const Text('Kualitas Air Tambak Udang'),
+          centerTitle: false,
+          backgroundColor: Colors.greenAccent[700],
+          elevation: 0.0,
+          actions: [
+            IconButton(
+                onPressed: () async {
+                  final prefs = await SharedPreferences.getInstance();
+                  final savedUser = prefs.getString('user');
 
-                          if (index == 0) {
-                            return Showcase(
-                                key: _key1,
-                                description:
-                                    'Tekan ini untuk melihat hasil pemantauan',
-                                shapeBorder: const CircleBorder(),
-                                showcaseBackgroundColor: Colors.indigo,
-                                descTextStyle: const TextStyle(
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                ),
-                                overlayPadding: const EdgeInsets.all(8.0),
-                                contentPadding: const EdgeInsets.all(16.0),
-                                child: TambakCard(
-                                  tambak: tambak,
-                                  onDelete: getTambaks,
-                                ));
-                          }
+                  if (savedUser == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                        content: Text(
+                            'Tidak bisa akses user, silahkan login ulang')));
+                    return;
+                  }
+                  final user = User.fromJson(savedUser);
+                  await Navigator.of(context)
+                      .pushNamed('/edit_user', arguments: user);
+                },
+                icon: const Icon(Icons.account_circle_rounded)),
+            IconButton(
+              onPressed: handleLogout,
+              icon: const Icon(Icons.exit_to_app),
+              color: Colors.white,
+            )
+          ],
+        ),
+        body: Container(
+            margin: const EdgeInsets.fromLTRB(18, 20, 18, 20),
+            child: isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : tambaks.isEmpty
+                    ? const Center(
+                        child: Text('Belum ada tambak, silahkan tambah tambak'))
+                    : RefreshIndicator(
+                        onRefresh: getTambaks,
+                        child: ListView.separated(
+                          itemCount: tambaks.length,
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(height: 15),
+                          itemBuilder: (_, index) {
+                            final tambak = tambaks[index];
 
-                          return TambakCard(
-                            tambak: tambak,
-                            onDelete: getTambaks,
-                          );
-                        },
-                        // children: <Widget>[
-                        //   Showcase(
-                        //       key: _key1,
-                        //       description: 'Tekan ini untuk melihat hasil pemantauan',
-                        //       shapeBorder: const CircleBorder(),
-                        //       showcaseBackgroundColor: Colors.indigo,
-                        //       descTextStyle: const TextStyle(
-                        //         fontWeight: FontWeight.w500,
-                        //         color: Colors.white,
-                        //         fontSize: 16,
-                        //       ),
-                        //       overlayPadding: const EdgeInsets.all(8.0),
-                        //       contentPadding: const EdgeInsets.all(16.0),
-                        //       child: TambakCard(text: "Tambak 1")),
-                        //   TambakCard(text: "Tambak 2"),
-                        //   TambakCard(text: "Tambak 3"),
-                        //   TambakCard(text: "Tambak 4"),
-                        // ],
-                      ),
-                    )),
-    );
-  }
+                            if (index == 0) {
+                              TambakCard(
+                                tambak: tambak,
+                                onDelete: getTambaks,
+                              );
+                            }
+
+                            return TambakCard(
+                              tambak: tambak,
+                              onDelete: getTambaks,
+                            );
+                          },
+                        ),
+                      )),
+      );
 }
